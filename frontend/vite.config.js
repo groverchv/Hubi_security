@@ -23,6 +23,9 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_API_TARGET || 'http://localhost:8000',
           changeOrigin: true,
           secure: false,
+          // El análisis de VirusTotal puede tardar cerca de un minuto.
+          timeout: 180000,
+          proxyTimeout: 180000,
         },
       },
       watch: {

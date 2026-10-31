@@ -814,9 +814,13 @@ async def upload_document_to_folder(
             logger.warning(f"Error buscando análisis previo para '{filename}': {ex_c}")
 
     doc_id = f"doc_{filename}_{len(file_bytes)}_{content_hash[:8]}"
-    from app.services.virustotal import lookup_sha256
+    from app.services.virustotal import scan_file
 
-    virus_report = await asyncio.to_thread(lookup_sha256, content_hash)
+    # Hash conocido: respuesta al momento. Archivo nuevo: se envía a VirusTotal
+    # y esta petición espera el veredicto (puede tardar cerca de un minuto).
+    virus_report = await asyncio.to_thread(
+        scan_file, file_bytes, content_hash, filename, extracted_text
+    )
     model_hits, model_ok = guard_model_fragments(extracted_text)
     injection_hits = model_hits if model_ok else injection_fragments(extracted_text)
     doc_record = {
@@ -843,26 +847,27 @@ async def upload_document_to_folder(
     # Push + invalidación de tableros cacheados + rollback por límite (TOCTOU)
     await persist_document_to_folder(folder_id, doc_record, current_user)
 
-    # Indexar en Qdrant para RAG (búsqueda semántica + preguntas fundamentadas)
-    background_tasks.add_task(
-        rag_service.index_document,
-        folder_id,
-        doc_id,
-        filename,
-        extracted_text,
-        resolve_effective_user_id(current_user, None),
-    )
+    # Un archivo con problemas no entra al juego, al quiz ni al archipiélago.
+    if not _doc_blocks_game(doc_record):
+        # Indexar en Qdrant para RAG (búsqueda semántica + preguntas fundamentadas)
+        background_tasks.add_task(
+            rag_service.index_document,
+            folder_id,
+            doc_id,
+            filename,
+            extracted_text,
+            resolve_effective_user_id(current_user, None),
+        )
 
-    # Resumen ejecutivo del doc en background (metadato ligero)
-    background_tasks.add_task(summarize_and_store, folder_id, doc_id, extracted_text)
+        # Resumen ejecutivo del doc en background (metadato ligero)
+        background_tasks.add_task(summarize_and_store, folder_id, doc_id, extracted_text)
 
-    # Detección de temas → islas (estructura → LLM fallback) en background
-    background_tasks.add_task(detect_topics_and_store, folder_id, doc_id)
+        # Detección de temas → islas (estructura → LLM fallback) en background
+        background_tasks.add_task(detect_topics_and_store, folder_id, doc_id)
 
-    # Pre-warm: si es el primer documento de la carpeta, pre-generar el nivel 1
-    # en background para que "jugar ahora" sea instantáneo.
-    if is_first_doc:
-        if settings.PREWARM_LEVEL1_ENABLED:
+        # Pre-warm: si es el primer documento de la carpeta, pre-generar el nivel 1
+        # en background para que "jugar ahora" sea instantáneo.
+        if is_first_doc and settings.PREWARM_LEVEL1_ENABLED:
             background_tasks.add_task(_prewarm_level1, folder_id, current_user)
 
     return {
@@ -924,6 +929,22 @@ def _build_generation_text(
     return header + "\n\n".join(t[:share] for t in texts_with_source)
 
 
+_VT_BLOCKS_GAME = {"malicious", "suspicious", "pending", "eicar", "unavailable"}
+
+
+def _doc_blocks_game(doc: dict | None) -> bool:
+    """Malware, prueba EICAR, análisis incompleto o prompt injection."""
+    if not doc:
+        return False
+    if doc.get("prompt_injection_detected"):
+        return True
+    return doc.get("virustotal_status") in _VT_BLOCKS_GAME
+
+
+def _folder_blocks_game(folder_doc: dict | None) -> bool:
+    return any(_doc_blocks_game(d) for d in (folder_doc or {}).get("documents") or [])
+
+
 async def _run_folder_generation(
     folder_id: str,
     force: bool,
@@ -960,6 +981,11 @@ async def _run_folder_generation(
             status_code=status.HTTP_404_NOT_FOUND, detail=f"Carpeta '{folder_id}' no encontrada."
         )
     _assert_folder_access(current_user, folder_doc)
+    if _folder_blocks_game(folder_doc):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Hay un archivo con problemas. Quítalo para generar el juego.",
+        )
     # Carpetas escolares: `force` regenera con LLM (costo) — privilegio del
     # docente dueño; los estudiantes siempre consumen el tablero cacheado.
     if folder_doc.get("is_school_folder") and force:
@@ -1360,6 +1386,9 @@ async def detect_topics_and_store(
         folder_doc = await _load_folder(folder_id)
         if not folder_doc:
             return
+        if _folder_blocks_game(folder_doc):
+            logger.info("Archipiélago omitido: hay un archivo bloqueado en %s", folder_id)
+            return
         docs = folder_doc.get("documents") or []
         doc = next((d for d in docs if d.get("id") == doc_id), None)
         if not doc or (doc.get("topic_sections") and not force):
@@ -1429,6 +1458,8 @@ async def detect_topics_endpoint(
     if not folder_doc:
         raise HTTPException(status_code=404, detail="Carpeta no encontrada.")
     _assert_folder_access(current_user, folder_doc)
+    if _folder_blocks_game(folder_doc):
+        return {"islands": []}
 
     for doc in folder_doc.get("documents") or []:
         if force or not doc.get("topic_sections"):

@@ -481,7 +481,7 @@ export default function StudyFolderManagerModal({
           onProgress: (p) =>
             updateTempDoc(tempDoc.id, {
               progress: p,
-              uploaded_at: p < 100 ? t('folders.uploading_p', { pct: p }) : t('folders.extracting'),
+              uploaded_at: p < 100 ? t('folders.uploading_p', { pct: p }) : t('folders.vt_scanning'),
             }),
         },
       );
@@ -607,9 +607,10 @@ export default function StudyFolderManagerModal({
               ],
             };
           });
-          // Tras la subida el backend detecta temas en background — anunciar
-          // que la isla se está generando y sondear hasta que aparezca.
-          if (
+          const blocked = (currentFolder.documents || []).some(fileBlocksPlay);
+          if (blocked) {
+            stopIslandGenPoll();
+          } else if (
             !(currentFolder.islands || []).length &&
             (currentFolder.documents || []).length > 0
           ) {
@@ -675,6 +676,7 @@ export default function StudyFolderManagerModal({
   // islas se reconstruyen y las preguntas viejas se invalidan.
   const handleRegenerateIslands = async () => {
     if (!activeFolderView || regeneratingIslands) return;
+    if ((activeFolderView.documents || []).some(fileBlocksPlay)) return;
     setRegeneratingIslands(true);
     try {
       const r = await fetchWithAuth(
@@ -730,8 +732,21 @@ export default function StudyFolderManagerModal({
   // Iniciar el juego: AQUÍ se crean las islas del archipiélago. La carpeta
   // solo muestra documentos; al pulsar Iniciar se detectan temas y se
   // muestran todas las islas para elegir campaña (o jugar mezclado).
+  const fileHasVirus = (doc) =>
+    doc.virustotal_status === 'malicious'
+    || doc.virustotal_status === 'suspicious'
+    || doc.virustotal_status === 'eicar';
+
+  const fileScanPending = (doc) => doc.virustotal_status === 'pending';
+
+  const fileScanFailed = (doc) => doc.virustotal_status === 'unavailable';
+
+  const fileBlocksPlay = (doc) =>
+    fileHasVirus(doc) || fileScanPending(doc) || fileScanFailed(doc) || Boolean(doc.prompt_injection_detected);
+
   const handlePlayDirectly = async () => {
     if (!activeFolderView || isProcessingGame || detectingTopics) return;
+    if ((activeFolderView.documents || []).some(fileBlocksPlay)) return;
 
     // 1. Islas ya existentes (campañas previas) → mostrarlas directo
     let islands = activeFolderView.islands || [];
@@ -1232,7 +1247,7 @@ export default function StudyFolderManagerModal({
               {/* "Tu isla se está generando" — detección de temas en curso
                   tras la subida; desaparece solo cuando el archipiélago
                   llega vía sondeo a /folders (o tras ~75s). */}
-              {islandGenPending && (
+              {islandGenPending && !(activeFolderView.documents || []).some(fileBlocksPlay) && (
                 <div className="rounded-arcade border-2 border-cyan-200 bg-cyan-50/90 p-4 flex flex-col gap-2">
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-4 h-4 text-cyan-600 animate-spin shrink-0" />
@@ -1555,13 +1570,15 @@ export default function StudyFolderManagerModal({
                                 : `${formatDocSize(doc.size) || t('folders.loaded')} • ${formatDate(doc.uploaded_at) || t('folders.ready')}`
                               }
                             </span>
-                            {!doc.isUploading && doc.virustotal_status && doc.virustotal_status !== 'unavailable' && (
+                            {!doc.isUploading && doc.virustotal_status && (
                               <span className={`block text-[10px] font-bold ${
-                                doc.virustotal_status === 'malicious' || doc.virustotal_status === 'suspicious'
+                                doc.virustotal_status === 'malicious' || doc.virustotal_status === 'suspicious' || doc.virustotal_status === 'eicar'
                                   ? 'text-rose-600'
                                   : doc.virustotal_status === 'clean'
                                     ? 'text-emerald-700'
-                                    : 'text-slate-500'
+                                    : doc.virustotal_status === 'pending'
+                                      ? 'text-amber-700'
+                                      : 'text-slate-500'
                               }`}>
                                 {t(`folders.vt_${doc.virustotal_status}`, { n: doc.virustotal_malicious || 0 })}
                               </span>
@@ -1607,6 +1624,33 @@ export default function StudyFolderManagerModal({
                       <span>{t('folders.uploading_note')}</span>
                     </span>
                   );
+                  const virusDocs = readyDocs.filter(fileHasVirus);
+                  const pendingDocs = readyDocs.filter(fileScanPending);
+                  const failedDocs = readyDocs.filter(fileScanFailed);
+                  const injectionDocs = readyDocs.filter((d) => d.prompt_injection_detected);
+                  if (virusDocs.length > 0 || pendingDocs.length > 0 || failedDocs.length > 0 || injectionDocs.length > 0) {
+                    const onlyPending = pendingDocs.length > 0 && virusDocs.length === 0 && failedDocs.length === 0 && injectionDocs.length === 0;
+                    const onlyFailed = failedDocs.length > 0 && virusDocs.length === 0 && pendingDocs.length === 0 && injectionDocs.length === 0;
+                    const onlyVirus = virusDocs.length > 0 && injectionDocs.length === 0 && pendingDocs.length === 0 && failedDocs.length === 0;
+                    const onlyInjection = injectionDocs.length > 0 && virusDocs.length === 0 && pendingDocs.length === 0 && failedDocs.length === 0;
+                    const soft = onlyPending || onlyFailed;
+                    return (
+                    <span className={`flex items-center gap-2 font-semibold ${soft ? 'text-amber-800' : 'text-rose-700'}`}>
+                      <span className={`w-2.5 h-2.5 rounded-full ${soft ? 'bg-amber-500' : 'bg-rose-500'}`} />
+                      <span>{t(
+                        onlyPending
+                          ? 'folders.vt_pending_blocked'
+                          : onlyFailed
+                          ? 'folders.vt_unavailable'
+                          : onlyVirus
+                          ? 'folders.vt_blocked'
+                          : onlyInjection
+                          ? 'folders.injection_blocked'
+                          : 'folders.play_blocked'
+                      )}</span>
+                    </span>
+                    );
+                  }
                   if (readyDocs.length > 0) return (
                     <span className="flex items-center gap-2 font-semibold text-slate-600">
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
@@ -1624,8 +1668,10 @@ export default function StudyFolderManagerModal({
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 {/* Iniciar el juego directamente con los archivos procesados de la carpeta (Estilo Card Clash) */}
                 {(() => {
-                  const readyCount = (activeFolderView.documents || []).filter(d => !d.isUploading).length;
-                  const isDisabled = readyCount === 0 || isProcessingGame || detectingTopics;
+                  const readyDocs = (activeFolderView.documents || []).filter(d => !d.isUploading);
+                  const readyCount = readyDocs.length;
+                  const blockedBySafety = readyDocs.some(fileBlocksPlay);
+                  const isDisabled = readyCount === 0 || isProcessingGame || detectingTopics || blockedBySafety;
                   const isBusy = isProcessingGame || detectingTopics;
                   return (
                     <button
