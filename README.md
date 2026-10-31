@@ -1,148 +1,135 @@
 # Hubzy
 
-**Arena de aprendizaje zen**: convierte tus apuntes (PDF, Word, imágenes) en un juego de memoria por niveles con **Hubzi**, una capibara compañera que cuida tu calma antes de los exámenes con técnicas de regulación emocional basadas en evidencia (TCC, respiración 4-7-8, grounding 5-4-3-2-1).
+Arena de aprendizaje: subes apuntes (PDF, Word, TXT, MD, CSV o imagen) y Hubzy arma un juego de memoria por niveles. Si el documento tiene varios temas, cada uno se vuelve una isla del archipiélago, con su propia campaña. Hubzi, la capibara, acompaña el estudio con pausas de regulación emocional.
 
-Diseño **anti-estrés**: sin vidas, sin timers, sin "game over". Los errores enseñan (pistas), las trampas se desvanecen, la racha solo suma. Precisión real por primer intento, racha de estudio diaria, repaso espaciado y feedback adaptativo (BKT) sobre temas débiles.
+Sin vidas, sin temporizador y sin "game over". Los errores muestran una pista.
 
-**Archipiélago de islas**: si un documento tiene varios temas (`Tema 1`, `Capítulo`, headings…), cada tema se convierte en una isla con su propia campaña, niveles proporcionales al contenido y preguntas que nunca mezclan temas. Sin temas detectables → isla única "General".
+## Probarlo en tu máquina
 
-**Hubzy para Colegios (B2B)**: instituciones → grados/paralelos → materias (carpetas) → temas (islas). Matrícula por código de clase o CSV, progreso por estudiante, panel docente con temas débiles del curso, reportes imprimibles y licencia por seats en Stripe.
+Necesitas:
 
-Pensado para estudiantes universitarios y colegios (target inicial: UAGRM, Bolivia). Ver `docs/exploracion-ansiedad-uagrm.md` para la investigación de base.
+- Python 3.11 o superior
+- Node.js 20 o superior y npm
+- Docker Desktop, solo para MongoDB
+- Una clave de [Google Gemini](https://aistudio.google.com/apikey) o de [Groq](https://console.groq.com/keys) para generar las preguntas
+
+La app abre en **http://localhost:5173**. El frontend reenvía `/api` al backend en el puerto **8000**.
+
+### 1. MongoDB
+
+En la raíz del repo:
+
+```bash
+docker compose up -d mongodb
+```
+
+La base `hubzy_db` aparece al crear la primera cuenta. En MongoDB Compass la URI es `mongodb://localhost:27017`.
+
+### 2. Backend
+
+```bash
+cd backend
+python -m venv venv
+```
+
+Activa el entorno:
+
+```bat
+venv\Scripts\activate.bat
+```
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+```bash
+source venv/bin/activate
+```
+
+Sigue en `backend`:
+
+```bash
+pip install -r requirements.txt
+copy .env.example .env
+```
+
+En Linux o macOS el último paso es `cp .env.example .env`.
+
+Abre `backend/.env` y completa al menos:
+
+| Variable | Para probar en local |
+|---|---|
+| `MONGODB_URI` | Déjala en `mongodb://localhost:27017` |
+| `MONGODB_DB_NAME` | `hubzy_db` |
+| `QDRANT_HOST` | `localhost` si levantas Qdrant; si no, el juego igual se genera y la búsqueda en apuntes queda desconectada |
+| `GEMINI_API_KEY` o `GROQ_API_KEY` | Una de las dos, para generar el juego |
+| `JWT_SECRET` | Cualquier texto largo. El valor de ejemplo sirve solo en local |
+| `EMAIL_ENABLED` | `false` para no configurar correo. El aviso de verificación sale en la terminal del backend |
+| `VIRUSTOTAL_API_KEY` | Opcional. Hace falta para el chequeo de archivos. Pídela en [virustotal.com/gui/my-apikey](https://www.virustotal.com/gui/my-apikey) |
+
+Arranca:
+
+```bash
+python -m uvicorn app.main:app --reload --port 8000
+```
+
+Si cambias `.env`, reinicia este proceso. `--reload` no vuelve a leer ese archivo solo.
+
+### 3. Frontend
+
+En otra terminal, desde la raíz:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Entra a http://localhost:5173, crea una cuenta, abre una carpeta, sube un apunte y pulsa **Iniciar juego**. La primera generación puede tardar cerca de un minuto.
+
+### Todo en Docker
+
+Con `backend/.env` ya creado (las claves de IA van ahí):
+
+```bash
+docker compose up --build
+```
+
+Compose usa MongoDB y Qdrant de la red interna. La app queda en http://localhost:5173.
+
+## Qué probar
+
+**Apunte normal.** Un `.txt` o PDF de estudio. VirusTotal, si tiene clave, lo analiza. Si sale limpio, **Iniciar juego** crea las islas y el quiz.
+
+**Prompt injection.** Al final de un apunte agrega una línea que pida ignorar las instrucciones o revelar el prompt del sistema. La carpeta muestra el fragmento, el botón de jugar queda apagado y no se genera el archipiélago.
+
+**Archivo malicioso.** Baja el archivo de prueba oficial en [eicar.org](https://www.eicar.org/download-anti-malware-testfile/) (`eicar.com`) o sube un PDF o TXT que lleve esa frase de prueba. El archivo se marca como malicioso, **Iniciar juego** queda apagado y no se arma el quiz ni el archipiélago. Quítalo de la carpeta para volver a jugar con otro apunte.
+
+Formatos aceptados: PDF, DOCX, TXT, MD, CSV e imagen, hasta 25 MB.
 
 ## Stack
 
 | Capa | Tecnología |
 |---|---|
-| Frontend | React 19 + Vite + Tailwind 4 + Framer Motion + React Router + Zustand + i18next |
-| Backend | FastAPI + Motor (MongoDB async) + Qdrant (RAG) |
-| IA | Google Gemini (extracción, voz, embeddings) + Groq (NLP clínico rápido) |
-| Pagos | Stripe Checkout (suscripción Pro) + webhook firmado |
-| Infra | Docker Compose · GitHub Actions CI · PWA |
-
-## Inicio rápido
-
-```bash
-# 1. Backend
-cd backend
-python -m venv venv
-source venv/bin/activate       # Linux / macOS
-# .\venv\Scripts\Activate.ps1  # Windows PowerShell
-# venv\Scripts\activate.bat    # Windows cmd
-pip install -r requirements.txt
-cp .env.example .env   # completa GEMINI_API_KEY, JWT_SECRET, etc.
-uvicorn app.main:app --reload --port 8000
-
-# 2. Frontend (otra terminal)
-cd frontend
-npm install
-cp .env.example .env
-npm run dev            # http://localhost:5173
-
-# Atajo: levanta backend+frontend y libera puertos ocupados
-bash scripts/dev.sh            # Linux / macOS / Git Bash
-# powershell -File scripts\dev.ps1   # Windows
-
-# 3. Todo junto con Docker (MongoDB + Qdrant incluidos)
-docker compose up --build
-```
+| Frontend | React 19, Vite, Tailwind 4, Framer Motion, Zustand, i18next |
+| Backend | FastAPI, Motor (MongoDB), Qdrant |
+| IA | Gemini y Groq |
+| Archivos | VirusTotal y detección de prompt injection |
+| Pagos | Stripe (opcional para probar el juego) |
 
 ## Tests
 
 ```bash
-cd backend && python -m pytest tests/ -q     # 109 tests: auth JWT, IDOR, freemium, Stripe, WS auth,
-                                            # adaptativo, pipeline de carpetas, islas, instituciones
-cd frontend && npm test                     # Vitest: componentes y store
+cd backend && python -m pytest tests/ -q
+cd frontend && npm test
 ```
 
-## Arquitectura
-
-```
-backend/app/
-├── core/           # config, security (JWT/bcrypt), database, plans (freemium),
-│                   # rate_limit (slowapi), session_store (dev sin BD)
-├── routers/        # auth · users · arena · folders · institutions · zen · voice
-│                   # psychology · payments · ai · adaptive · jobs · ws
-├── services/       # ai_service (Gemini/Groq) · psychology_service (NLP clínico)
-│                   # voice_service (edge-tts/ElevenLabs) · board_service (tableros+caché)
-│                   # rag_service (embeddings Qdrant) · topic_detector (segmentación
-│                   #   de temas → islas) · document_store · job_service (jobs async)
-├── schemas/        # Pydantic: tablero, nodos, cartas
-├── models/         # Pydantic: usuarios, auth
-└── tests/          # pytest
-
-frontend/src/
-├── pages/          # LandingPage · DashboardPage · ZenPage · ArcadeArena (juego)
-├── components/     # modales del juego + CrisisModal (protocolo de ayuda)
-├── lib/            # api.js (fetchWithAuth+JWT) · crisis.jsx · observability (Sentry/PostHog)
-├── store/          # authStore (Zustand persistente)
-├── locales/        # es.json · en.json (i18n)
-└── hooks/, utils/  # audio, voz de Hubzi, catálogo de mascotas (WebP)
-```
-
-## Seguridad implementada
-
-- JWT (PyJWT) con `Authorization: Bearer` en todos los endpoints protegidos; `JWT_SECRET` es obligatorio y validado en `ENVIRONMENT=production`
-- Contraseñas bcrypt con migración transparente desde el formato legado
-- Autorización: `user_id` siempre sale del token (anti-IDOR); invitados con scope limitado
-- Rate limiting (slowapi) en auth, generación IA, uploads y voz; storage configurable vía `RATE_LIMIT_STORAGE_URI` (redis/mongodb para multi-réplica)
-- CORS restringido por `CORS_ORIGINS` (nunca `*` con credenciales)
-- Stripe: checkout autenticado + webhook con verificación de firma
-- Magic bytes + límite 25 MB + whitelist de extensiones en uploads; texto extraído sanitizado y acotado
-- Tokens de verificación/reset de un solo uso (jti consumido en `consumed_tokens`)
-
-## Endpoints clave
-
-| Método | Ruta | Descripción |
-|---|---|---|
-| POST | `/api/v1/auth/register` `/login` | Cuenta + JWT |
-| GET | `/api/v1/auth/me` | Perfil desde token |
-| POST | `/api/v1/arena/generate` | Texto → tablero (caché L1/L2) |
-| POST | `/api/v1/arena/upload-and-generate` | Archivo → tablero; con `folder_id` persiste + indexa |
-| POST | `/api/v1/folders/{id}/upload-document` | Sube doc + indexa en Qdrant |
-| POST | `/api/v1/folders/{id}/generate-game` | Tablero por nivel; `?async=true` → 202 + `job_id`; `island_id` acota al tema |
-| POST | `/api/v1/folders/{id}/detect-topics` | Detecta temas → reconstruye `islands[]` (progreso preservado) |
-| GET | `/api/v1/jobs/{id}` | Estado de job async (stage/progress/result) |
-| POST | `/api/v1/folders/{id}/ask` | RAG: "pregúntale a tus apuntes" |
-| POST | `/api/v1/institutions` `/join` | Crear colegio · matrícula por código (HUBZY-/PROF-) |
-| POST | `/api/v1/institutions/{id}/grades` `/grades/{id}/folders` | Grados y materias |
-| POST | `/api/v1/institutions/grades/{id}/students/bulk` | Matrícula masiva CSV con credenciales |
-| POST | `/api/v1/institutions/grades/{id}/assign` | Asignar isla/materia (badge 📌) |
-| GET | `/api/v1/institutions/grades/{id}/dashboard` | Panel docente: progreso × estudiante × isla + temas débiles |
-| GET | `/api/v1/institutions/grades/{id}/students/{uid}/report` | Reporte individual imprimible |
-| POST | `/api/v1/institutions/{id}/checkout` | Licencia por seats vía Stripe |
-| POST | `/api/v1/psychology/analyze` | NLP clínico TCC + flag `is_crisis` |
-| GET | `/api/v1/psychology/crisis-resources` | Recursos de derivación (configurables) |
-| GET | `/api/v1/psychology/protocols` | Protocolos zen basados en evidencia |
-| POST | `/api/v1/payments/create-checkout-session` | Suscripción Pro (requiere JWT) |
-| POST | `/api/v1/payments/webhook` | Eventos Stripe firmados |
-
-## Modelo freemium
-
-| | Free | Pro ($2.99/mes) | Escuelas ($1/estudiante/mes, mín. 30) |
-|---|---|---|---|
-| Carpetas | 3 | Ilimitadas | Ilimitadas (materias del grado) |
-| Docs/carpeta | 5 | Ilimitados | Ilimitados |
-| Preguntas/juego | 8 | 30 | 30 |
-| Panel docente / reportes | — | — | ✓ |
-
-Las cuentas escolares de estudiantes se crean por código de clase o CSV
-(gestionadas por el colegio, sin email real requerido).
-
-## Protocolo de crisis
-
-El NLP clínico puede devolver `is_crisis=true` en `/capy-ask` y `/psychology/analyze`. El frontend lo muestra con `CrisisModal` y recursos de `/psychology/crisis-resources` (configurables por `CRISIS_RESOURCES_JSON`).
-
-> **Importante ético** (del doc de exploración): Hubzy no diagnostica ni sustituye atención profesional. Verificar los números de ayuda locales y el contacto de Bienestar UAGRM antes de producción.
+Si `pytest` no está instalado: `pip install pytest` dentro del entorno virtual.
 
 ## Variables de entorno
 
-Backend: ver `backend/.env.example` (Mongo, Qdrant, Gemini, Groq, Stripe, `JWT_SECRET`, `CORS_ORIGINS`, `SENTRY_DSN`).
-Frontend: ver `frontend/.env.example` (`VITE_SENTRY_DSN`, `VITE_POSTHOG_KEY`).
+El listado completo está en `backend/.env.example` y `frontend/.env.example`. Stripe, Sentry, PostHog, ElevenLabs y el correo SMTP no hacen falta para el recorrido de arriba.
 
 ## Equipo
 
-**SynapseHub** — Hackathon project convertido en startup MVP.
-# Hubi_security
-# Hubi_security
-# Hubi_security
+**SynapseHub**
