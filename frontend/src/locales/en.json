@@ -828,6 +828,8 @@
     "uploading_p": "Uploading… {{pct}}%",
     "extracting": "Extracting text…",
     "processed": "Processed ✓",
+    "injection_notice": "{{names}} contains a hidden instruction (prompt injection). The text was saved, but the model treats it only as study material and does not follow it.",
+    "injection_fragment": "Fragment",
     "err_limit": "plan limit reached.",
     "err_413": "Exceeds the 25 MB maximum size.",
     "err_415": "Unsupported format. Use PDF, DOCX, TXT, MD, CSV or image.",

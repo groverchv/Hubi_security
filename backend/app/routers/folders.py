@@ -21,6 +21,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.core.prompt_guard import fence_untrusted, guard_system, injection_fragments
 from app.core.database import db_manager
 from app.core.plans import (
     enforce_docs_limit,
@@ -808,6 +809,7 @@ async def upload_document_to_folder(
             logger.warning(f"Error buscando análisis previo para '{filename}': {ex_c}")
 
     doc_id = f"doc_{filename}_{len(file_bytes)}_{content_hash[:8]}"
+    injection_hits = injection_fragments(extracted_text)
     doc_record = {
         "id": doc_id,
         "name": filename,
@@ -820,6 +822,8 @@ async def upload_document_to_folder(
         "is_analyzed": existing_analysis is not None,
         "analysis_result": existing_analysis,
         "uploaded_at": utcnow_iso(),
+        "prompt_injection_fragments": injection_hits,
+        "prompt_injection_detected": bool(injection_hits),
     }
 
     is_first_doc = not folder_doc or not folder_doc.get("documents")
@@ -860,6 +864,8 @@ async def upload_document_to_folder(
         "char_count": doc_record["char_count"],
         "uploaded_at": doc_record["uploaded_at"],
         "rag_indexed": rag_service.available,
+        "prompt_injection_detected": doc_record["prompt_injection_detected"],
+        "prompt_injection_fragments": doc_record["prompt_injection_fragments"],
     }
 
 
@@ -1637,11 +1643,11 @@ async def ask_folder_documents(
             t0 = usage_started()
             comp = await asyncio.to_thread(
                 _ai.groq_client.chat.completions.create,
-                model="llama-3.1-8b-instant",
+                model="qwen/qwen3.8-27b",
                 messages=[
                     {
                         "role": "system",
-                        "content": (
+                        "content": guard_system(
                             "Eres Hubzi, tutora de Hubzy. Responde SOLO con base en el contexto de apuntes "
                             "provisto. Si la respuesta no está en el contexto, dilo honestamente. "
                             "Sé concisa, cálida y pedagógica (máx. 120 palabras)."
@@ -1649,14 +1655,18 @@ async def ask_folder_documents(
                     },
                     {
                         "role": "user",
-                        "content": f"Contexto de apuntes:\n{context}\n\nPregunta del estudiante: {payload.question}",
+                        "content": (
+                            fence_untrusted(context, "apuntes")
+                            + "\n\n"
+                            + fence_untrusted(payload.question, "pregunta")
+                        ),
                     },
                 ],
                 temperature=0.3,
                 max_tokens=400,
                 timeout=10.0,
             )
-            record_groq_usage(comp, "llama-3.1-8b-instant", "ask_rag", usage_elapsed_ms(t0))
+            record_groq_usage(comp, "qwen/qwen3.8-27b", "ask_rag", usage_elapsed_ms(t0))
             answer = (comp.choices[0].message.content or "").strip()
     except Exception as e:
         logger.warning(f"Groq no respondió para /ask: {e}")

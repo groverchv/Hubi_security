@@ -24,6 +24,7 @@ except ImportError:
     GROQ_AVAILABLE = False
 
 from app.core.config import settings
+from app.core.prompt_guard import fence_untrusted, guard_system
 from app.services.llm_telemetry import (
     record_gemini_usage,
     record_groq_usage,
@@ -499,18 +500,18 @@ class PsychologyNLPService:
         if context:
             context_str = f"\nContexto del estudiante: {json.dumps(context, ensure_ascii=False)}"
 
-        user_content = f'Mensaje del estudiante (voz/texto):\n"{text}"{context_str}'
+        user_content = fence_untrusted(text, "mensaje del estudiante") + context_str
 
         # 1. Intentar con Groq primero (8b-instant: clasificación clínica
         # no necesita el 70b — cuesta ~10x menos por token)
         if self.groq_client:
-            for g_model in ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]:
+            for g_model in ["qwen/qwen3.8-27b", "openai/gpt-oss-20b"]:
                 try:
                     t0 = usage_started()
                     chat_comp = self.groq_client.chat.completions.create(
                         model=g_model,
                         messages=[
-                            {"role": "system", "content": PSYCHOLOGY_SYSTEM_PROMPT},
+                            {"role": "system", "content": guard_system(PSYCHOLOGY_SYSTEM_PROMPT)},
                             {"role": "user", "content": user_content},
                         ],
                         response_format={"type": "json_object"},
@@ -560,7 +561,7 @@ class PsychologyNLPService:
                     model=model_name,
                     contents=user_content,
                     config=genai_types.GenerateContentConfig(
-                        system_instruction=PSYCHOLOGY_SYSTEM_PROMPT,
+                        system_instruction=guard_system(PSYCHOLOGY_SYSTEM_PROMPT),
                         temperature=0.3,
                         response_mime_type="application/json",
                         max_output_tokens=350,
@@ -617,9 +618,9 @@ class PsychologyNLPService:
         context_str = ""
         if context:
             context_str = f"\nContexto del estudiante: {json.dumps(context, ensure_ascii=False)}"
-        user_content = f'Mensaje del estudiante (voz/texto):\n"{text}"{context_str}'
+        user_content = fence_untrusted(text, "mensaje del estudiante") + context_str
 
-        system_prompt = PSYCHOLOGY_SYSTEM_PROMPT
+        system_prompt = guard_system(PSYCHOLOGY_SYSTEM_PROMPT)
         if reply_directives:
             system_prompt += (
                 "\n\nREGLAS DE RESPUESTA PERSONALIZADA (para `empathic_response`):\n"
@@ -628,7 +629,7 @@ class PsychologyNLPService:
 
         # Groq primero (8b: barato y veloz), Gemini como respaldo
         if self.groq_client:
-            for g_model in ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]:
+            for g_model in ["qwen/qwen3.8-27b", "openai/gpt-oss-20b"]:
                 try:
                     t0 = usage_started()
                     comp = self.groq_client.chat.completions.create(
@@ -720,12 +721,11 @@ class PsychologyNLPService:
                 "technique": "Descentramiento cognitivo TCC",
             }
 
-        reframe_prompt = (
+        reframe_prompt = guard_system(
             "Eres un terapeuta cognitivo-conductual experto en psicología educativa. "
-            "Toma el siguiente pensamiento ansioso de un estudiante universitario "
-            "y transfórmalo en una reformulación realista, profundamente compasiva y constructiva en máximo 1-2 oraciones.\n"
-            f"Pensamiento ansioso: '{anxious_thought}'"
-        )
+            "Toma el pensamiento ansioso de un estudiante universitario "
+            "y transfórmalo en una reformulación realista, profundamente compasiva y constructiva en máximo 1-2 oraciones."
+        ) + "\n" + fence_untrusted(anxious_thought, "pensamiento")
         try:
             res = self.client.models.generate_content(
                 model=GEMINI_FALLBACK_MODELS[0], contents=reframe_prompt

@@ -820,6 +820,8 @@
     "uploading_p": "Subiendo… {{pct}}%",
     "extracting": "Extrayendo texto…",
     "processed": "Procesado ✓",
+    "injection_notice": "En {{names}} hay una orden escondida (prompt injection). El texto se guardó, pero el modelo la trata solo como apunte y no la obedece.",
+    "injection_fragment": "Fragmento",
     "err_limit": "límite del plan alcanzado.",
     "err_413": "Supera el tamaño máximo de 25 MB.",
     "err_415": "Formato no soportado. Usa PDF, DOCX, TXT, MD, CSV o imagen.",

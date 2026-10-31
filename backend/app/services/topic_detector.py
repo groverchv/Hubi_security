@@ -20,6 +20,7 @@ import logging
 import re
 from difflib import SequenceMatcher
 
+from app.core.prompt_guard import fence_untrusted, guard_system
 from app.services.llm_telemetry import (
     record_gemini_usage,
     usage_elapsed_ms,
@@ -193,14 +194,13 @@ def detect_topics_llm(text: str, filename: str = "") -> list[dict]:
             + text[-9_000:]
         )
 
-    prompt = (
+    prompt = guard_system(
         "Divide este documento educativo en temas pedagógicos coherentes "
         "(máximo 6). Para cada tema devuelve su título corto y la FRASE "
         "LITERAL de 5-10 palabras con la que empieza esa sección en el texto. "
         'JSON estricto: {"topics":[{"title":"...","start_anchor":"..."}]}. '
-        'Si el documento trata de un solo tema, devuelve {"topics":[]}.\n\n'
-        f"DOCUMENTO ({filename}):\n{sample}"
-    )
+        'Si el documento trata de un solo tema, devuelve {"topics":[]}.'
+    ) + "\n\n" + fence_untrusted(sample, filename or "documento")
     try:
         t0 = usage_started()
         resp = client.models.generate_content(

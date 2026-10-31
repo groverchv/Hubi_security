@@ -110,7 +110,9 @@ class Settings(BaseSettings):
                 )
         return self
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    # extra=ignore: .env.example incluye vars de Compose (MONGO_ROOT_*, HTTP_PORT)
+    # que no son settings de la app.
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
 
 settings = Settings()

@@ -474,7 +474,7 @@ export default function StudyFolderManagerModal({
     const formData = new FormData();
     formData.append('file', file);
     try {
-      await uploadWithProgress(
+      const uploaded = await uploadWithProgress(
         `/api/v1/folders/${folderId}/upload-document`,
         formData,
         {
@@ -485,7 +485,13 @@ export default function StudyFolderManagerModal({
             }),
         },
       );
-      updateTempDoc(tempDoc.id, { uploaded_at: t('folders.processed'), isUploading: false, progress: 100 });
+      updateTempDoc(tempDoc.id, {
+        uploaded_at: t('folders.processed'),
+        isUploading: false,
+        progress: 100,
+        prompt_injection_detected: Boolean(uploaded?.prompt_injection_detected),
+        prompt_injection_fragments: uploaded?.prompt_injection_fragments || [],
+      });
       track("doc_uploaded", { folder: folderId });
     } catch (upErr) {
       removeTempDoc(tempDoc.id);
@@ -1457,6 +1463,31 @@ export default function StudyFolderManagerModal({
                       </div>
                     );
                   })()}
+
+                  {(activeFolderView.documents || []).some((d) => d.prompt_injection_detected) && (
+                    <div className="rounded-arcade-sm border border-amber-300 bg-amber-50 px-4 py-3 space-y-2">
+                      {(activeFolderView.documents || [])
+                        .filter((d) => d.prompt_injection_detected)
+                        .map((d) => (
+                          <div key={d.id} className="flex items-start gap-2.5">
+                            <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-semibold text-amber-900 leading-snug">
+                                {t('folders.injection_notice', { names: d.name })}
+                              </p>
+                              {(d.prompt_injection_fragments || []).map((fragment) => (
+                                <p
+                                  key={fragment}
+                                  className="mt-1 rounded-md bg-white/80 border border-amber-200 px-2 py-1 font-mono text-[11px] text-amber-950 break-words"
+                                >
+                                  {t('folders.injection_fragment')}: “{fragment}”
+                                </p>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
 
                   {uploadErrors.length > 0 && (
                     <div className="rounded-arcade-sm border border-rose-300 bg-rose-50 px-4 py-3 space-y-2">
