@@ -1,0 +1,38 @@
+[project]
+name = "hubzy-backend"
+version = "0.1.0"
+description = "Hubzy backend — plataforma adaptativa de aprendizaje gamificado"
+requires-python = ">=3.10"
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["venv", ".venv", "__pycache__", "dist", "node_modules"]
+
+[tool.ruff.lint]
+# E/F: pycodestyle+pyflakes, I: imports, UP: pyupgrade, B: bugbear,
+# S: bandit (seguridad), C4: comprehensions, RUF: reglas ruff
+select = ["E", "F", "I", "UP", "B", "S", "C4", "RUF", "W"]
+ignore = [
+    "E501",   # longitud de línea la controla black
+    "S101",   # assert permitido en tests
+    "B008",   # Depends() en signature es patrón FastAPI
+    "S105", "S106", "S107",  # strings que parecen passwords: revisar manualmente
+    "S311",   # random.* es para gameplay/problemas matemáticos, nunca para secretos (bcrypt/secrets en security.py)
+    "S324",   # md5 se usa solo para content-hash de deduplicación, no para credenciales
+    "RUF001", "RUF002",  # caracteres unicode ambiguos son texto legítimo en español (tildes, flechas)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B011"]
+"scripts/**" = ["S"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

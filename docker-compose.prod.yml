@@ -1,0 +1,117 @@
+# docker-compose.prod.yml — despliegue de producción (EC2/AWS)
+# Uso: docker compose -f docker-compose.prod.yml --env-file backend/.env up -d --build
+#
+# Diferencias vs docker-compose.yml (dev):
+#  - Sin bind mounts de código (imagen inmutable, lo que se testea es lo que corre)
+#  - Mongo y Qdrant NO publican puertos al host (solo red interna)
+#  - Healthchecks; el backend no arranca hasta que sus deps internas estén sanas
+#  - Frontend = build estático servido por nginx en el puerto 80 (+ proxy /api y /ws)
+#
+# Base de datos — DOS caminos:
+#  · MongoDB Atlas (default): pon MONGODB_URI=mongodb+srv://... en backend/.env
+#    y el servicio `mongodb` simplemente no arranca (profile local-db).
+#  · Mongo auto-hospedado: docker compose -f docker-compose.prod.yml \
+#      --env-file backend/.env --profile local-db up -d --build
+#    (requiere MONGO_ROOT_PASSWORD y MONGODB_URI apuntando a mongodb:27017)
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: hubzy-mongodb
+    restart: always
+    profiles:
+      - local-db
+    # SIN "ports:" — la BD nunca se expone fuera de la red interna de compose.
+    volumes:
+      - mongodb_storage:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-hubzy}
+      # Requerido SOLO si arrancas --profile local-db (con Atlas este
+      # contenedor ni existe y la var puede quedar vacía). Sin ella Mongo
+      # arrancaría SIN autenticación en la red interna.
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-}
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: hubzy-qdrant
+    restart: always
+    profiles:
+      - local-db
+    # SIN "ports:" — solo accesible desde el backend.
+    # Con Qdrant Cloud (QDRANT_URL+QDRANT_API_KEY en .env) este contenedor
+    # no arranca — el backend usa la nube directamente.
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:6333/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hubzy-backend
+    restart: always
+    env_file:
+      - path: ./backend/.env
+        required: true
+    environment:
+      # MONGODB_URI y QDRANT_* llegan por env_file (Atlas/Qdrant Cloud o
+      # los contenedores local-db). Nada de overrides que pisarían la nube.
+      MONGODB_DB_NAME: ${MONGODB_DB_NAME:-hubzy_db}
+      ENVIRONMENT: production
+    depends_on:
+      mongodb:
+        condition: service_healthy
+        required: false
+      qdrant:
+        condition: service_healthy
+        required: false
+    # Sin puerto publicado: nginx es la única puerta de entrada.
+    expose:
+      - "8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: hubzy-frontend
+    restart: always
+    # Sin puerto publicado: caddy es la única puerta de entrada (80/443).
+    expose:
+      - "80"
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: hubzy-caddy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+
+volumes:
+  mongodb_storage:
+  qdrant_storage:
+  caddy_data:
+  caddy_config:

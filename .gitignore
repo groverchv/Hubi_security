@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Environment files
+.env
+.env.local
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Logs & Storage
+*.log
+qdrant_storage/
+
+# System / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.mp3

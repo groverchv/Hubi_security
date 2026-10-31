@@ -1,0 +1,9 @@
+# Caddyfile — TLS automático (Let's Encrypt) + reverse proxy al frontend nginx.
+# DOMAIN llega por variable de entorno desde docker-compose.prod.yml / backend/.env
+{$DOMAIN} {
+	reverse_proxy frontend:80
+
+	# Generar tableros con LLM puede tardar minutos.
+	# Caddy no tiene read_timeout por defecto en reverse_proxy; el límite
+	# efectivo lo pone nginx (300s en /api/).
+}

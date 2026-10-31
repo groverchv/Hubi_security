@@ -1,0 +1,920 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sage: #7C9885;
+  --color-mint: #D8EADF;
+  --color-sky: #B5D2E8;
+  --color-oat: #F5EFEB;
+  --color-sand: #EFE9E1;
+  --color-clay: #A08C78;
+
+  /* Paleta Estilo Card Clash / Arcade */
+  --color-arcade-navy: #122443;
+  --color-arcade-navy-dark: #0a162b;
+  --color-arcade-navy-light: #1e3a6c;
+  --color-arcade-navy-hover: #1a335e;
+  --color-arcade-navy-deep: #0d1627;
+  --color-arcade-ink: #050a13;
+  --color-arcade-orange: #FF7A00;
+  --color-arcade-orange-shadow: #D45B00;
+  --color-arcade-orange-light: #FF9B38;
+  --color-arcade-orange-bright: #ff8c1a;
+  --color-arcade-green: #48C838;
+  --color-arcade-green-shadow: #28871E;
+  --color-arcade-green-light: #67DC59;
+  --color-arcade-yellow: #FFB400;
+  --color-arcade-yellow-shadow: #D48800;
+  --color-arcade-blue: #1C8FE8;
+  --color-arcade-cyan: #45B1E8;
+
+  /* Design tokens (Fase 4.1): radios/sombras repetidos del estilo arcade.
+     Los componentes se migran a estas variables de forma incremental —
+     ahora mismo los mismos valores están hardcodeados en cientos de clases. */
+  --radius-arcade-sm: 0.75rem;
+  --radius-arcade: 1rem;
+  --radius-arcade-lg: 1.5rem;
+  --radius-arcade-xl: 2rem;
+  --shadow-btn-arcade: 0 4px 0 var(--color-arcade-ink);
+  --shadow-btn-arcade-press: 0 1px 0 var(--color-arcade-ink);
+  --shadow-btn-arcade-sm: 0 2px 0 var(--color-arcade-ink);
+  --shadow-btn-arcade-lg: 0 5px 0 var(--color-arcade-ink);
+  --shadow-btn-arcade-xl: 0 6px 0 var(--color-arcade-ink);
+  --shadow-btn-green: 0 4px 0 var(--color-arcade-green-shadow);
+  --shadow-btn-green-press: 0 2px 0 var(--color-arcade-green-shadow);
+  --shadow-btn-orange: 0 4px 0 var(--color-arcade-orange-shadow);
+  --shadow-btn-orange-flat: 0 4px 0 var(--color-arcade-orange);
+  --shadow-btn-yellow: 0 4px 0 var(--color-arcade-yellow-shadow);
+  --shadow-btn-yellow-press: 0 3px 0 var(--color-arcade-yellow-shadow);
+  --shadow-btn-emerald: 0 4px 0 #065f46;
+  --shadow-hud: 0 3px 0 var(--color-arcade-ink);
+  --shadow-modal: 0 10px 0 var(--color-arcade-navy);
+  --shadow-modal-lg: 0 12px 0 var(--color-arcade-ink);
+  --shadow-modal-xl: 0 16px 0 var(--color-arcade-ink), 0 25px 50px rgba(0, 0, 0, 0.7);
+  --shadow-modal-2xl: 0 16px 0 var(--color-arcade-ink), 0 25px 50px rgba(0, 0, 0, 0.8);
+  --shadow-glow-cyan-sm: 0 0 8px #22d3ee;
+  --shadow-glow-cyan-md: 0 0 12px #22d3ee;
+}
+
+/* Grosor del borde inferior "prensable" del estilo arcade — la pieza que
+   falta para que botones/chips no repitan border-b-3/4/5/6/8 literales. */
+@utility border-b-arcade-xs {
+  border-bottom-width: 2px;
+}
+@utility border-b-arcade-sm {
+  border-bottom-width: 3px;
+}
+@utility border-b-arcade {
+  border-bottom-width: 4px;
+}
+@utility border-b-arcade-lg {
+  border-bottom-width: 5px;
+}
+@utility border-b-arcade-xl {
+  border-bottom-width: 6px;
+}
+@utility border-b-arcade-2xl {
+  border-bottom-width: 8px;
+}
+
+/* Custom 3D Sky & Fluffy Cloud Environment (Card Clash Inspired for Focus & Immersion) */
+body {
+  background: linear-gradient(180deg, #1886e4 0%, #30a5f7 42%, #68c4fc 78%, #a4e0fe 100%);
+  color: #1e293b;
+  font-family: 'Fredoka', 'Nunito', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  user-select: none;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Capa de Nubes Suaves Animadas Flotantes */
+body::before,
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Nubes en el fondo con movimiento suave zen */
+body::before {
+  background-image: 
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.75) 90px, transparent 150px),
+    radial-gradient(circle at 24% 28%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.65) 120px, transparent 190px),
+    radial-gradient(circle at 82% 16%, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.70) 110px, transparent 180px),
+    radial-gradient(circle at 92% 26%, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.60) 130px, transparent 200px),
+    radial-gradient(circle at 8% 80%, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.65) 160px, transparent 250px),
+    radial-gradient(circle at 18% 88%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.55) 180px, transparent 280px),
+    radial-gradient(circle at 85% 82%, rgba(255, 255, 255, 0.90) 0%, rgba(255, 255, 255, 0.65) 170px, transparent 260px),
+    radial-gradient(circle at 50% 12%, rgba(255, 255, 255, 0.50) 0%, rgba(255, 255, 255, 0.20) 80px, transparent 140px);
+  filter: blur(12px);
+  opacity: 0.92;
+  animation: cloudsFloat 38s ease-in-out infinite alternate;
+}
+
+/* Nubes en primer plano para dar profundidad dimensional */
+body::after {
+  background-image: 
+    radial-gradient(circle at 12% 24%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.80) 70px, transparent 120px),
+    radial-gradient(circle at 88% 22%, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.75) 85px, transparent 140px),
+    radial-gradient(circle at 6% 82%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.70) 120px, transparent 190px),
+    radial-gradient(circle at 94% 84%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.70) 130px, transparent 200px);
+  filter: blur(4px);
+  opacity: 0.85;
+  animation: cloudsFloatSlow 50s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes cloudsFloat {
+  0% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-12px) scale(1.03); }
+  100% { transform: translateY(8px) scale(0.98); }
+}
+
+@keyframes cloudsFloatSlow {
+  0% { transform: translateX(0px) translateY(0px); }
+  50% { transform: translateX(18px) translateY(-8px); }
+  100% { transform: translateX(-14px) translateY(10px); }
+}
+
+/* Perspectiva 3D inclinada hacia la mesa con relieve isométrico suave */
+.isometric-board-container {
+  perspective: 1200px;
+  perspective-origin: 50% 48%;
+}
+
+.table-3d {
+  transform: rotateX(18deg) translateY(-4px);
+  transform-style: preserve-3d;
+  transition: transform 0.4s ease;
+}
+
+/* Halos luminosos de relajación visual (suaves y difusos, no agresivos) */
+.glow-cyan {
+  box-shadow: 0 4px 20px -2px rgba(14, 165, 233, 0.35);
+}
+
+.glow-yellow {
+  box-shadow: 0 4px 20px -2px rgba(234, 179, 8, 0.35);
+}
+
+.glow-purple {
+  box-shadow: 0 4px 20px -2px rgba(168, 85, 247, 0.35);
+}
+
+/* === ESTILOS ARCADE CARD CLASH === */
+
+/* Fondo rayado diagonal (como los banners de Multiplayer y Singleplayer) */
+.bg-striped-diagonal {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.15),
+    rgba(255, 255, 255, 0.15) 12px,
+    transparent 12px,
+    transparent 24px
+  );
+}
+
+/* Botón Banner Naranja (Singleplayer style) */
+.btn-arcade-banner-orange {
+  background-color: var(--color-arcade-orange);
+  border-top: 4px solid var(--color-arcade-orange-light);
+  border-bottom: 5px solid var(--color-arcade-orange-shadow);
+  color: white;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 0 var(--color-arcade-navy);
+  transition: all 0.1s ease-in-out;
+}
+.btn-arcade-banner-orange:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 var(--color-arcade-navy);
+}
+
+/* Botón Banner Verde (Multiplayer style) */
+.btn-arcade-banner-green {
+  background-color: var(--color-arcade-green);
+  border-top: 4px solid var(--color-arcade-green-light);
+  border-bottom: 5px solid var(--color-arcade-green-shadow);
+  color: white;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 0 var(--color-arcade-navy);
+  transition: all 0.1s ease-in-out;
+}
+.btn-arcade-banner-green:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 var(--color-arcade-navy);
+}
+
+/* Botón Píldora Marina con Borde Naranja (Play Tutorial / Save Progress style) */
+.btn-arcade-pill {
+  position: relative;
+  background-color: var(--color-arcade-navy);
+  border: 3px solid var(--color-arcade-navy-dark);
+  border-bottom: 5px solid #060d1b;
+  color: #ffffff;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  transition: all 0.12s ease-in-out;
+}
+.btn-arcade-pill::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -8px;
+  width: calc(100% + 16px);
+  height: calc(100% + 12px);
+  background: var(--color-arcade-orange);
+  border-radius: inherit;
+  z-index: -1;
+  box-shadow: 0 3px 0 var(--color-arcade-orange-shadow);
+}
+.btn-arcade-pill:active {
+  transform: translateY(2px);
+}
+
+/* Botón Arcade Sólido Universal */
+.btn-arcade-solid {
+  background-color: var(--color-arcade-navy);
+  color: white;
+  border: 3px solid #0f1c34;
+  border-bottom: 5px solid #070e1b;
+  box-shadow: 0 4px 0 var(--color-arcade-ink);
+  transition: all 0.1s ease-in-out;
+}
+.btn-arcade-solid:hover {
+  background-color: var(--color-arcade-navy-hover);
+}
+.btn-arcade-solid:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--color-arcade-ink);
+}
+
+/* Borde Arcade Contundente */
+.border-arcade {
+  border: 3.5px solid var(--color-arcade-navy);
+  box-shadow: 0 4px 0 rgba(18, 36, 67, 0.4);
+}
+
+
+
+/* === MODO LIGERO (low-power) — dispositivos de gama baja ===
+   Se activa vía utils/lowPower.js (cores/memoria bajos o prefers-reduced-motion).
+   Apaga los efectos más caros de GPU/CPU; la jugabilidad no cambia. */
+
+/* Nubes fullscreen con blur(12px) = el mayor costo de GPU del fondo */
+html.low-power body::before,
+html.low-power body::after {
+  display: none;
+}
+
+/* Backdrop blur compone toda la pantalla en cada frame */
+html.low-power * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Tablero isométrico 3D → plano (transform/perspective cuestan capas) */
+html.low-power .table-3d,
+html.low-power .isometric-board-container {
+  transform: none !important;
+  perspective: none !important;
+}
+
+/* Drop shadows grandes sobre assets/texto */
+html.low-power .drop-shadow-2xl,
+html.low-power .drop-shadow-xl {
+  filter: none !important;
+}
+
+/* === OVERLAY "GIRA TU TELÉFONO" ===
+   iOS Safari no respeta orientation.lock ni el manifest → bloqueo amable. */
+.rotate-overlay {
+  display: none;
+}
+
+@media (orientation: portrait) and (pointer: coarse) and (max-width: 899px) {
+  .rotate-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, var(--color-arcade-navy-dark) 0%, var(--color-arcade-navy) 100%);
+    color: #fff;
+    font-family: 'Fredoka', 'Nunito', sans-serif;
+  }
+  .rotate-overlay-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 32px;
+    text-align: center;
+  }
+  .rotate-overlay-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 96px;
+    height: 96px;
+    border-radius: 28px;
+    background: rgba(255, 180, 0, 0.12);
+    border: 3px solid var(--color-arcade-yellow);
+    color: var(--color-arcade-yellow);
+    animation: rotateHint 2.2s ease-in-out infinite;
+  }
+  .rotate-overlay-title {
+    font-size: 22px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-arcade-yellow);
+    margin: 0;
+  }
+  .rotate-overlay-sub {
+    font-size: 14px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin: 0;
+    line-height: 1.55;
+  }
+  .rotate-overlay-ios {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 10px 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.07);
+    color: #cbd5e1;
+    font-size: 13px;
+  }
+  .rotate-overlay-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 14px 26px;
+    border: none;
+    border-radius: 9999px;
+    background: var(--color-arcade-yellow);
+    color: var(--color-arcade-navy-dark);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    box-shadow: 0 5px 0 rgba(0, 0, 0, 0.35);
+    -webkit-tap-highlight-color: transparent;
+  }
+  .rotate-overlay-btn:active {
+    transform: translateY(3px);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+  }
+  .rotate-overlay-btn:disabled {
+    opacity: 0.7;
+  }
+}
+
+@keyframes rotateHint {
+  0%, 100% { transform: rotate(0deg); }
+  50%      { transform: rotate(90deg); }
+}
+
+/* En móviles/tablets las nubes animadas a tamaño real tapan el contenido —
+   se ocultan en cualquier dispositivo táctil o pantalla chica. */
+@media (max-width: 1100px), (pointer: coarse) {
+  .clouds-bg {
+    display: none !important;
+  }
+  /* Las nubes pintadas en el body (::before/::after con radial-gradient)
+     también se apagan — son la capa que borroneaba todo en móvil. */
+  body::before,
+  body::after {
+    display: none !important;
+    content: none !important;
+  }
+}
+
+/* === MODO LANDSCAPE COMPACTO (teléfonos horizontales) ===
+   Solo dispositivos táctiles en horizontal con poca altura (~390px).
+   Desktop y tablets no se ven afectados. */
+.hand-slot {
+  width: 86px;
+  height: 112px;
+}
+
+@media (orientation: landscape) and (max-height: 640px) {
+  /* Escenario completo escalado: cada vista se dibuja como una ventana de
+     laptop (~1500×700) y se reduce uniformemente a la pantalla real del
+     teléfono. Tablero, cartas, HUD, Hubzi, landing y bienvenida conservan
+     proporciones idénticas a la versión de escritorio.
+     transform (no zoom) para que los fixed internos usen el escenario
+     como containing block — modales y toasts se posicionan y escalan
+     igual que el resto, sin espacios vacíos deslizables. */
+  html, body {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+  /* Fallback: aunque el zoom no aplique (navegador viejo/caché), el landing
+     mantiene las tarjetas y planes en fila como en escritorio. */
+  .landing-stage .sm\:grid-cols-3,
+  .landing-stage .md\:grid-cols-2,
+  .landing-stage .lg\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .landing-stage .md\:col-span-2 {
+    grid-column: auto !important;
+  }
+  .landing-stage .p-7,
+  .landing-stage .sm\:p-8 {
+    padding: 1rem !important;
+  }
+  .landing-stage .sm\:flex-row {
+    flex-direction: row !important;
+  }
+  /* En móvil horizontal el landing usa todo el ancho del layout ampliado */
+  .landing-stage .max-w-\[1600px\] {
+    max-width: none !important;
+  }
+  .arena-stage,
+  .welcome-stage {
+    transform: scale(0.55);
+    transform-origin: top left;
+    width: calc(100vw / 0.55) !important;
+    height: calc(100dvh / 0.55) !important;
+  }
+  /* El tablero + bandeja deben caber en el layout ampliado: la altura del
+     tablero baja cuando la pantalla es muy baja (nodos son %, no se rompen)
+     y se anula el margen superior extra del contenedor. */
+  .arena-stage .board-table-3d {
+    height: min(485px, calc(100dvh / 0.55 - 205px)) !important;
+    max-height: none !important;
+  }
+  .arena-stage .isometric-board-container {
+    margin-top: 3.5rem !important;
+    margin-bottom: 0 !important;
+  }
+  .landing-stage {
+    transform: scale(0.55);
+    transform-origin: top left;
+    width: calc(100vw / 0.55) !important;
+    min-height: calc(100dvh / 0.55) !important;
+  }
+  /* max-h usa el vh real; en el espacio ampliado el tablero debe poder
+     crecer hasta su tamaño de laptop (~485px del layout). */
+  .arena-stage .board-table-3d {
+    max-height: none !important;
+  }
+  /* Layout móvil adaptativo (Fase 2.4): cuando la arena pide el modo
+     compacto, el escenario NO se escala — nodos en lista y deck
+     horizontal a tamaño táctil real en lugar del look "laptop". */
+  .arena-stage.arena-compact {
+    transform: none;
+    width: 100vw !important;
+    height: 100dvh !important;
+  }
+  /* Los caps dvh miden el viewport real, no el layout escalado — se quitan
+     para que el contenido del modal se vea completo en pantallas bajas. */
+  .arena-stage .fixed .stage-modal-panel,
+  .landing-stage .fixed .stage-modal-panel,
+  .welcome-stage .fixed .stage-modal-panel {
+    max-height: none !important;
+  }
+  /* El baúl de carpetas ocupa toda la pantalla en móvil horizontal */
+  .folder-modal-panel {
+    max-width: none !important;
+    max-height: none !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    border-width: 0 !important;
+  }
+  /* Tap targets mínimos aunque todo se vea como laptop */
+  .touch-target {
+    min-width: 40px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Accesibilidad: usuarios con sensibilidad al movimiento (vestibular) —
+   apaga animaciones/transiciones decorativas. La app sigue 100% funcional. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Sin barras de scroll visibles — el contenido sigue siendo deslizable
+   (scroll funcional, track oculto en todos los navegadores). */
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+}
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Skeleton shimmer — las cargas "perciben" más velocidad mostrando la
+   silueta del contenido en lugar de un spinner aislado. */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.16) 25%,
+    rgba(148, 163, 184, 0.38) 50%,
+    rgba(148, 163, 184, 0.16) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
+
+/* Accesibilidad (A11yControls): alto contraste y texto grande */
+html.a11y-contrast {
+  filter: contrast(1.18) saturate(1.05);
+}
+html.a11y-large-text {
+  font-size: 118%;
+}
+
+/* === MODO NOCHE (4.4) — atenuación del cielo y nubes para jugar de
+   noche sin cambiar la consola del tablero (el panel claro de juego
+   mantiene su legibilidad "juguete"). Toggle en A11yControls. */
+html.dark-mode body {
+  background: linear-gradient(180deg, #050a13 0%, #0a162b 48%, #122443 82%, #1e3a6c 100%);
+  color: #e2e8f0;
+}
+html.dark-mode body::before,
+html.dark-mode body::after {
+  opacity: 0.35;
+  filter: blur(14px) brightness(0.55);
+}
+/* Superficies claras auxiliares del lobby/bienvenida al tono navy */
+html.dark-mode .bg-\[\#e2e8f0\] {
+  background-color: #122443;
+}
+html.dark-mode .hand-tray {
+  background: #122443;
+  border-color: #1e3a6c;
+}
+html.dark-mode .hand-slot {
+  background: rgba(30, 58, 108, 0.4);
+}
+
+/* === MODO NOCHE — Tablero de juego === */
+html.dark-mode .board-table-3d {
+  background-color: #122443;
+  border-color: #1e3a6c;
+}
+html.dark-mode .board-table-3d .bg-\[\#f8fafc\] {
+  background-color: #0a162b;
+  border-color: #1e3a6c;
+}
+html.dark-mode .board-table-3d .bg-\[\#f8fafc\]\/70 {
+  background-color: rgba(10, 22, 43, 0.7);
+  border-color: rgba(30, 58, 108, 0.8);
+}
+html.dark-mode .board-table-3d .border-slate-300,
+html.dark-mode .board-table-3d .border-slate-300\/80 {
+  border-color: #1e3a6c;
+}
+/* Rejilla interior tenue sobre navy */
+html.dark-mode .board-table-3d [style*="background-image"] {
+  background-image: linear-gradient(rgba(91, 131, 196, 0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(91, 131, 196, 0.16) 1px, transparent 1px) !important;
+}
+/* Conexiones: el trazo oscuro se aclara para verse en navy */
+html.dark-mode .board-table-3d line[stroke="#1e293b"] {
+  stroke: #5b83c4;
+}
+/* Casillas de nodo: vacías y estados de respuesta */
+html.dark-mode .board-table-3d .bg-slate-200\/80 {
+  background-color: rgba(30, 58, 108, 0.5);
+  border-color: rgba(91, 131, 196, 0.6);
+}
+html.dark-mode .board-table-3d .bg-green-100 {
+  background-color: rgba(16, 185, 129, 0.25);
+}
+html.dark-mode .board-table-3d .bg-rose-100 {
+  background-color: rgba(244, 63, 94, 0.2);
+}
+html.dark-mode .board-table-3d .bg-orange-100 {
+  background-color: rgba(249, 115, 22, 0.22);
+}
+html.dark-mode .board-table-3d .text-slate-600 {
+  color: #9fb4d8;
+}
+
+/* === MODO NOCHE — Baúl de Carpetas (StudyFolderManagerModal):
+   el panel es claro por diseño ("inventario de papel"); en modo noche
+   pasa a tonos navy manteniendo los acentos arcade. */
+html.dark-mode .folder-modal-panel {
+  background: #0f1b33;
+  color: #e2e8f0;
+}
+/* Cabecera / cuerpo / pie */
+html.dark-mode .folder-modal-wrap .bg-\[\#e2ecf9\],
+html.dark-mode .folder-modal-wrap .bg-slate-100 {
+  background-color: #122443;
+}
+html.dark-mode .folder-modal-wrap .bg-\[\#eaf1fb\] {
+  background-color: #0a162b;
+}
+html.dark-mode .folder-modal-wrap .border-\[\#bfd2ea\],
+html.dark-mode .folder-modal-wrap .border-slate-200,
+html.dark-mode .folder-modal-wrap .border-slate-300 {
+  border-color: #1e3a6c;
+}
+/* Tarjetas blancas (carpetas, docs, formularios, diálogos internos) */
+html.dark-mode .folder-modal-wrap .bg-white {
+  background-color: #122443;
+}
+html.dark-mode .folder-modal-wrap .bg-white\/70 {
+  background-color: rgba(18, 36, 67, 0.75);
+}
+html.dark-mode .folder-modal-wrap .hover\:bg-sky-50:hover {
+  background-color: #1e3a6c;
+}
+html.dark-mode .folder-modal-wrap .hover\:bg-slate-100:hover,
+html.dark-mode .folder-modal-wrap .hover\:bg-cyan-50:hover {
+  background-color: rgba(30, 58, 108, 0.5);
+}
+html.dark-mode .folder-modal-wrap .hover\:bg-rose-50:hover {
+  background-color: rgba(244, 63, 94, 0.15);
+}
+html.dark-mode .folder-modal-wrap .hover\:bg-emerald-100:hover {
+  background-color: rgba(16, 185, 129, 0.2);
+}
+/* Inputs */
+html.dark-mode .folder-modal-wrap input {
+  background-color: #0a162b;
+  color: #e2e8f0;
+}
+html.dark-mode .folder-modal-wrap input::placeholder {
+  color: #94a3b8;
+}
+/* Texto principal y auxiliar */
+html.dark-mode .folder-modal-wrap .text-slate-800,
+html.dark-mode .folder-modal-wrap .text-slate-700 {
+  color: #e2e8f0;
+}
+html.dark-mode .folder-modal-wrap .text-slate-600 {
+  color: #cbd5e1;
+}
+html.dark-mode .folder-modal-wrap .text-slate-500 {
+  color: #94a3b8;
+}
+html.dark-mode .folder-modal-wrap .group-hover\:text-amber-600:hover,
+html.dark-mode .folder-modal-wrap .group:hover .group-hover\:text-amber-600 {
+  color: #fcd34d;
+}
+html.dark-mode .folder-modal-wrap .hover\:text-slate-700:hover {
+  color: #e2e8f0;
+}
+/* Badges y paneles tintados → versiones translúcidas */
+html.dark-mode .folder-modal-wrap .bg-amber-50 {
+  background-color: rgba(251, 191, 36, 0.12);
+}
+html.dark-mode .folder-modal-wrap .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.12);
+}
+html.dark-mode .folder-modal-wrap .bg-cyan-50 {
+  background-color: rgba(34, 211, 238, 0.12);
+}
+html.dark-mode .folder-modal-wrap .bg-cyan-50\/90 {
+  background-color: rgba(8, 47, 73, 0.85);
+}
+html.dark-mode .folder-modal-wrap .bg-sky-50 {
+  background-color: rgba(14, 116, 144, 0.15);
+}
+html.dark-mode .folder-modal-wrap .text-amber-700,
+html.dark-mode .folder-modal-wrap .text-amber-600 {
+  color: #fcd34d;
+}
+html.dark-mode .folder-modal-wrap .text-cyan-700 {
+  color: #67e8f9;
+}
+html.dark-mode .folder-modal-wrap .text-cyan-700\/80 {
+  color: rgba(103, 232, 249, 0.85);
+}
+html.dark-mode .folder-modal-wrap .text-cyan-600,
+html.dark-mode .folder-modal-wrap .text-sky-600 {
+  color: #67e8f9;
+}
+html.dark-mode .folder-modal-wrap .text-emerald-700 {
+  color: #6ee7b7;
+}
+html.dark-mode .folder-modal-wrap .text-emerald-600 {
+  color: #6ee7b7;
+}
+html.dark-mode .folder-modal-wrap .hover\:text-emerald-800:hover {
+  color: #a7f3d0;
+}
+html.dark-mode .folder-modal-wrap .border-cyan-200,
+html.dark-mode .folder-modal-wrap .border-sky-200,
+html.dark-mode .folder-modal-wrap .border-cyan-300 {
+  border-color: #155e75;
+}
+html.dark-mode .folder-modal-wrap .border-amber-300 {
+  border-color: rgba(251, 191, 36, 0.4);
+}
+html.dark-mode .folder-modal-wrap .bg-cyan-100 {
+  background-color: #1e3a6c;
+}
+/* Panel degradado del archipiélago y tarjeta "3 pasos" */
+html.dark-mode .folder-modal-wrap .bg-gradient-to-b.from-white.to-sky-100,
+html.dark-mode .folder-modal-wrap .bg-gradient-to-r.from-white.to-sky-50 {
+  background-image: linear-gradient(180deg, #122443 0%, #0a162b 100%);
+}
+/* Toasts internos (temas detectados) */
+html.dark-mode .folder-modal-wrap .bg-emerald-100 {
+  background-color: rgba(16, 185, 129, 0.18);
+}
+html.dark-mode .folder-modal-wrap .text-emerald-800 {
+  color: #a7f3d0;
+}
+/* Badges de islas y panel de error de subida */
+html.dark-mode .folder-modal-wrap .bg-violet-50 {
+  background-color: rgba(139, 92, 246, 0.16);
+}
+html.dark-mode .folder-modal-wrap .text-violet-700 {
+  color: #c4b5fd;
+}
+html.dark-mode .folder-modal-wrap .bg-orange-50 {
+  background-color: rgba(249, 115, 22, 0.16);
+}
+html.dark-mode .folder-modal-wrap .text-orange-700 {
+  color: #fdba74;
+}
+html.dark-mode .folder-modal-wrap .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.15);
+}
+html.dark-mode .folder-modal-wrap .text-rose-700 {
+  color: #fda4af;
+}
+html.dark-mode .folder-modal-wrap .text-rose-500 {
+  color: #fb7185;
+}
+html.dark-mode .folder-modal-wrap .border-violet-300,
+html.dark-mode .folder-modal-wrap .border-orange-300,
+html.dark-mode .folder-modal-wrap .border-emerald-300,
+html.dark-mode .folder-modal-wrap .border-rose-300 {
+  border-color: #1e3a6c;
+}
+
+/* === MODO NOCHE — Landing page (.landing-stage): cielo y tarjetas
+   claras pasan a navy manteniendo acentos arcade y el modal de planes. */
+html.dark-mode .landing-stage {
+  background-image: linear-gradient(180deg, #050a13 0%, #0a162b 48%, #122443 82%, #1e3a6c 100%);
+}
+html.dark-mode .landing-stage .from-sky-200.to-emerald-100 {
+  background-image: linear-gradient(180deg, #122443 0%, #0a162b 100%);
+}
+/* Tarjetas y chips blancos */
+html.dark-mode .landing-stage .bg-white\/80,
+html.dark-mode .landing-stage .bg-white\/85,
+html.dark-mode .landing-stage .bg-white\/70,
+html.dark-mode .landing-stage .bg-white\/90,
+html.dark-mode .landing-stage .bg-white {
+  background-color: rgba(18, 36, 67, 0.92);
+}
+html.dark-mode .landing-stage .hover\:bg-white:hover {
+  background-color: #1e3a6c;
+}
+html.dark-mode .landing-stage .hover\:bg-slate-50:hover {
+  background-color: #1e3a6c;
+}
+/* Carta de la mascota (degradado blanco→slate) */
+html.dark-mode .landing-stage .bg-gradient-to-br.from-white\/90.to-slate-100\/80 {
+  background-image: linear-gradient(135deg, #1e3a6c 0%, #0f1b33 100%);
+}
+/* Texto y bordes */
+html.dark-mode .landing-stage .text-slate-700,
+html.dark-mode .landing-stage .text-\[var\(--color-arcade-navy\)\] {
+  color: #e2e8f0;
+}
+/* ...salvo el texto navy sobre degradados naranja/amarillo (badge
+   "más popular" y CTA del plan Pro): ahí el navy sí es el on-accent. */
+html.dark-mode .landing-stage .from-\[var\(--color-arcade-orange\)\].to-\[var\(--color-arcade-yellow\)\].text-\[var\(--color-arcade-navy\)\],
+html.dark-mode .landing-stage .from-\[var\(--color-arcade-orange\)\] .text-\[var\(--color-arcade-navy\)\],
+html.dark-mode .landing-stage .bg-\[var\(--color-arcade-yellow\)\] .text-\[var\(--color-arcade-navy\)\] {
+  color: var(--color-arcade-navy);
+}
+/* Píldoras navy (botones, badges, tarjeta Pro) sobre fondo navy */
+html.dark-mode .landing-stage .bg-\[var\(--color-arcade-navy\)\] {
+  background-color: #1e3a6c;
+}
+html.dark-mode .landing-stage .bg-\[var\(--color-arcade-navy-dark\)\] {
+  background-color: #0f1b33;
+}
+html.dark-mode .landing-stage .text-slate-600 {
+  color: #cbd5e1;
+}
+html.dark-mode .landing-stage .text-slate-500 {
+  color: #94a3b8;
+}
+html.dark-mode .landing-stage .bg-slate-100 {
+  background-color: #122443;
+}
+html.dark-mode .landing-stage .border-slate-200,
+html.dark-mode .landing-stage .border-slate-300 {
+  border-color: #1e3a6c;
+}
+html.dark-mode .landing-stage .border-4.border-\[var\(--color-arcade-navy\)\] {
+  border-color: #2d4a7a;
+}
+html.dark-mode .landing-stage .hover\:border-\[var\(--color-arcade-navy\)\]:hover {
+  border-color: #4a6fa5;
+}
+/* Nubes animadas (landing + zen + arena): atenuar de noche */
+html.dark-mode .clouds-bg {
+  opacity: 0.16;
+  filter: brightness(0.5) blur(3px);
+}
+
+/* === MODO NOCHE — Modo Zen (.zen-stage): mismo patrón que landing —
+   fondo navy, tarjetas translúcidas, acentos esmeralda conservados. */
+html.dark-mode .zen-stage {
+  background-image: linear-gradient(180deg, #050a13 0%, #0a162b 48%, #122443 82%, #1e3a6c 100%);
+}
+html.dark-mode .zen-stage .bg-white\/70,
+html.dark-mode .zen-stage .bg-white\/85 {
+  background-color: rgba(18, 36, 67, 0.92);
+}
+html.dark-mode .zen-stage .bg-white {
+  background-color: #122443;
+}
+html.dark-mode .zen-stage .hover\:bg-white:hover {
+  background-color: #1e3a6c;
+}
+html.dark-mode .zen-stage input {
+  background-color: #0a162b;
+  color: #e2e8f0;
+}
+html.dark-mode .zen-stage input::placeholder {
+  color: #94a3b8;
+}
+html.dark-mode .zen-stage .text-\[var\(--color-arcade-navy\)\] {
+  color: #e2e8f0;
+}
+html.dark-mode .zen-stage .text-slate-600 {
+  color: #cbd5e1;
+}
+html.dark-mode .zen-stage .border-slate-200 {
+  border-color: #1e3a6c;
+}
+html.dark-mode .zen-stage .bg-\[var\(--color-arcade-navy\)\] {
+  background-color: #1e3a6c;
+}
+html.dark-mode .zen-stage .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.12);
+}
+html.dark-mode .zen-stage .text-emerald-800 {
+  color: #a7f3d0;
+}
+html.dark-mode .zen-stage .text-emerald-600 {
+  color: #6ee7b7;
+}
+html.dark-mode .zen-stage .bg-emerald-500\/20 {
+  background-color: rgba(16, 185, 129, 0.12);
+}
+
+/* Modal de planes: 3 columnas siempre. En pantallas bajas (móvil
+   landscape) o angostas se compacta para que quepa completa. */
+@media (max-height: 660px), (max-width: 760px) {
+  .plans-modal-grid > * {
+    padding: 0.55rem !important;
+    border-width: 2.5px !important;
+    border-bottom-width: 5px !important;
+    border-radius: 1rem !important;
+  }
+  .plans-modal-grid h3 { font-size: 0.8rem !important; }
+  .plans-modal-grid h3 svg { width: 12px; height: 12px; }
+  .plans-modal-grid p,
+  .plans-modal-grid div span,
+  .plans-modal-grid a { font-size: 8px !important; }
+  .plans-modal-grid [class*="text-3xl"] { font-size: 1.15rem !important; line-height: 1.3rem !important; }
+  .plans-modal-grid [class*="space-y-1"] > * + * { margin-top: 0.15rem; }
+  .plans-modal-grid [class*="space-y-1"] { padding-top: 0.4rem !important; }
+  .plans-modal-grid [class*="mt-2"], .plans-modal-grid [class*="mt-4"] { margin-top: 0.45rem !important; }
+  .plans-modal-grid [class*="mb-2"], .plans-modal-grid [class*="mb-3"] { margin-bottom: 0.3rem !important; }
+  .plans-modal-grid a, .plans-modal-grid button { padding-top: 0.35rem !important; padding-bottom: 0.35rem !important; }
+}

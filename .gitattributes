@@ -1,0 +1,40 @@
+# Normalización de finales de línea para desarrollo multiplataforma.
+# Regla: el repo almacena LF; Windows puede sacar CRLF en working tree,
+# pero los scripts de shell SIEMPRE deben salir en LF o rompen en Linux/macOS.
+
+* text=auto
+
+# Shell scripts: LF obligatorio (shebang + set -u fallan con CRLF)
+*.sh    text eol=lf
+*.bash  text eol=lf
+
+# Scripts Windows: CRLF obligatorio (cmd/PowerShell los parsean mejor)
+*.ps1   text eol=crlf
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Código y configs: LF en repo (funciona en los 3 SO)
+*.py    text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.md    text eol=lf
+Dockerfile* text eol=lf
+*.dockerignore text eol=lf
+Caddyfile text eol=lf
+nginx.conf text eol=lf
+
+# Binarios: nunca tocar finales de línea
+*.png   binary
+*.webp  binary
+*.ico   binary
+*.glb   binary
+*.svg   binary
+*.mp3   binary
+*.woff2 binary

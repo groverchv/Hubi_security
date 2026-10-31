@@ -1,0 +1,70 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: hubzy-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+
+  mongodb:
+    image: mongo:7.0
+    container_name: hubzy-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_storage:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: hubzy-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      # Estas vars sobrescriben lo que haya en backend/.env (red interna de compose)
+      - MONGODB_URI=mongodb://mongodb:27017
+      - MONGODB_DB_NAME=${MONGODB_DB_NAME:-hubzy_db}
+      - QDRANT_HOST=qdrant
+      - QDRANT_PORT=6333
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+    depends_on:
+      - mongodb
+      - qdrant
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: hubzy-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+      # El bind mount de Docker no propaga eventos del fs en Windows/macOS:
+      # sin polling, vite no detecta cambios dentro del contenedor.
+      - VITE_USE_POLLING=true
+    depends_on:
+      - backend
+
+volumes:
+  qdrant_storage:
+  mongodb_storage:
+
