@@ -830,6 +830,7 @@
     "processed": "Processed ✓",
     "injection_notice": "{{names}} contains a hidden instruction (prompt injection). The text was saved, but the model treats it only as study material and does not follow it.",
     "injection_fragment": "Fragment",
+    "injection_file": "Hidden instruction. The game stays blocked.",
     "vt_clean": "VirusTotal: no detections",
     "vt_malicious": "VirusTotal: {{n}} engines flagged it as malware",
     "vt_suspicious": "VirusTotal: flagged as suspicious",

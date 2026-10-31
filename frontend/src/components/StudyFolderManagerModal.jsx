@@ -1570,7 +1570,12 @@ export default function StudyFolderManagerModal({
                                 : `${formatDocSize(doc.size) || t('folders.loaded')} • ${formatDate(doc.uploaded_at) || t('folders.ready')}`
                               }
                             </span>
-                            {!doc.isUploading && doc.virustotal_status && (
+                            {!doc.isUploading && doc.prompt_injection_detected && (
+                              <span className="block text-[10px] font-bold text-rose-600">
+                                {t('folders.injection_file')}
+                              </span>
+                            )}
+                            {!doc.isUploading && doc.virustotal_status && !(doc.prompt_injection_detected && doc.virustotal_status === 'clean') && (
                               <span className={`block text-[10px] font-bold ${
                                 doc.virustotal_status === 'malicious' || doc.virustotal_status === 'suspicious' || doc.virustotal_status === 'eicar'
                                   ? 'text-rose-600'

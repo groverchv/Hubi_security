@@ -822,6 +822,7 @@
     "processed": "Procesado ✓",
     "injection_notice": "En {{names}} hay una orden escondida (prompt injection). El texto se guardó, pero el modelo la trata solo como apunte y no la obedece.",
     "injection_fragment": "Fragmento",
+    "injection_file": "Orden escondida. El juego queda bloqueado.",
     "vt_clean": "VirusTotal: sin detecciones",
     "vt_malicious": "VirusTotal: {{n}} motores lo marcan como malware",
     "vt_suspicious": "VirusTotal: marcado como sospechoso",
