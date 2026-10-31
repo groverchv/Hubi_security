@@ -21,7 +21,12 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
-from app.core.prompt_guard import fence_untrusted, guard_system, injection_fragments
+from app.core.prompt_guard import (
+    fence_untrusted,
+    guard_model_fragments,
+    guard_system,
+    injection_fragments,
+)
 from app.core.database import db_manager
 from app.core.plans import (
     enforce_docs_limit,
@@ -809,7 +814,11 @@ async def upload_document_to_folder(
             logger.warning(f"Error buscando análisis previo para '{filename}': {ex_c}")
 
     doc_id = f"doc_{filename}_{len(file_bytes)}_{content_hash[:8]}"
-    injection_hits = injection_fragments(extracted_text)
+    from app.services.virustotal import lookup_sha256
+
+    virus_report = await asyncio.to_thread(lookup_sha256, content_hash)
+    model_hits, model_ok = guard_model_fragments(extracted_text)
+    injection_hits = model_hits if model_ok else injection_fragments(extracted_text)
     doc_record = {
         "id": doc_id,
         "name": filename,
@@ -824,6 +833,9 @@ async def upload_document_to_folder(
         "uploaded_at": utcnow_iso(),
         "prompt_injection_fragments": injection_hits,
         "prompt_injection_detected": bool(injection_hits),
+        "virustotal_status": virus_report["status"],
+        "virustotal_malicious": virus_report["malicious"],
+        "virustotal_suspicious": virus_report["suspicious"],
     }
 
     is_first_doc = not folder_doc or not folder_doc.get("documents")
@@ -866,6 +878,9 @@ async def upload_document_to_folder(
         "rag_indexed": rag_service.available,
         "prompt_injection_detected": doc_record["prompt_injection_detected"],
         "prompt_injection_fragments": doc_record["prompt_injection_fragments"],
+        "virustotal_status": doc_record["virustotal_status"],
+        "virustotal_malicious": doc_record["virustotal_malicious"],
+        "virustotal_suspicious": doc_record["virustotal_suspicious"],
     }
 
 

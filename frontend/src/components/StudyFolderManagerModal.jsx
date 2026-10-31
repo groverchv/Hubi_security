@@ -491,6 +491,8 @@ export default function StudyFolderManagerModal({
         progress: 100,
         prompt_injection_detected: Boolean(uploaded?.prompt_injection_detected),
         prompt_injection_fragments: uploaded?.prompt_injection_fragments || [],
+        virustotal_status: uploaded?.virustotal_status || '',
+        virustotal_malicious: uploaded?.virustotal_malicious || 0,
       });
       track("doc_uploaded", { folder: folderId });
     } catch (upErr) {
@@ -1553,6 +1555,17 @@ export default function StudyFolderManagerModal({
                                 : `${formatDocSize(doc.size) || t('folders.loaded')} • ${formatDate(doc.uploaded_at) || t('folders.ready')}`
                               }
                             </span>
+                            {!doc.isUploading && doc.virustotal_status && doc.virustotal_status !== 'unavailable' && (
+                              <span className={`block text-[10px] font-bold ${
+                                doc.virustotal_status === 'malicious' || doc.virustotal_status === 'suspicious'
+                                  ? 'text-rose-600'
+                                  : doc.virustotal_status === 'clean'
+                                    ? 'text-emerald-700'
+                                    : 'text-slate-500'
+                              }`}>
+                                {t(`folders.vt_${doc.virustotal_status}`, { n: doc.virustotal_malicious || 0 })}
+                              </span>
+                            )}
                           </div>
                         </div>
 

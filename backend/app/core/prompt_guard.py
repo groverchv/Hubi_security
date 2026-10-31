@@ -54,6 +54,102 @@ def looks_like_injection(text: str) -> bool:
     return _INJECTION_RE.search(text) is not None
 
 
+# Clasificador de Meta. Devuelve una probabilidad de que el texto sea una
+# orden para el modelo, no una frase fija. Ventana corta: el modelo acepta
+# unos 512 tokens.
+PROMPT_GUARD_MODEL = "meta-llama/llama-prompt-guard-2-86m"
+PROMPT_GUARD_THRESHOLD = 0.5
+_GUARD_CHUNK_CHARS = 800
+_GUARD_MAX_CHUNKS = 12
+
+
+def _line_groups(text: str) -> list[str]:
+    """Agrupa líneas para no mandar el PDF entero en una sola llamada."""
+    groups: list[str] = []
+    buf: list[str] = []
+    size = 0
+    for line in text.splitlines() or [text]:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if size + len(stripped) > _GUARD_CHUNK_CHARS and buf:
+            groups.append("\n".join(buf))
+            buf, size = [], 0
+            if len(groups) >= _GUARD_MAX_CHUNKS:
+                return groups
+        buf.append(stripped)
+        size += len(stripped) + 1
+    if buf and len(groups) < _GUARD_MAX_CHUNKS:
+        groups.append("\n".join(buf))
+    return groups
+
+
+def _guard_score(client, chunk: str) -> float | None:
+    try:
+        comp = client.chat.completions.create(
+            model=PROMPT_GUARD_MODEL,
+            messages=[{"role": "user", "content": chunk[:_GUARD_CHUNK_CHARS]}],
+            max_tokens=8,
+            temperature=0,
+            timeout=8,
+        )
+        raw = (comp.choices[0].message.content or "").strip()
+        return float(raw)
+    except Exception as exc:
+        logger.warning("Prompt Guard no pudo clasificar un fragmento: %s", exc)
+        return None
+
+
+def _snippet(text: str) -> str:
+    snippet = " ".join(text.split())
+    if len(snippet) > 180:
+        return snippet[:177] + "..."
+    return snippet
+
+
+def guard_model_fragments(text: str) -> tuple[list[str], bool]:
+    """
+    Fragmentos que Llama Prompt Guard considera una orden para el modelo.
+    El segundo valor es False si Groq no respondió: ahí se usa el filtro por frases.
+    """
+    if not text or not text.strip():
+        return [], True
+    try:
+        from groq import Groq
+
+        from app.core.config import settings
+    except Exception as exc:
+        logger.warning("Prompt Guard no disponible: %s", exc)
+        return [], False
+    if not settings.GROQ_API_KEY:
+        return [], False
+
+    client = Groq(api_key=settings.GROQ_API_KEY)
+    found: list[str] = []
+    for chunk in _line_groups(text):
+        score = _guard_score(client, chunk)
+        if score is None:
+            return found, False
+        if score < PROMPT_GUARD_THRESHOLD:
+            continue
+        lines = [ln.strip() for ln in chunk.splitlines() if ln.strip()]
+        if len(lines) <= 6:
+            flagged = []
+            for line in lines:
+                line_score = _guard_score(client, line)
+                if line_score is None:
+                    return found, False
+                if line_score >= PROMPT_GUARD_THRESHOLD:
+                    flagged.append(_snippet(line))
+            chosen = flagged or [_snippet(chunk)]
+        else:
+            chosen = [_snippet(chunk)]
+        for snippet in chosen:
+            if snippet and snippet not in found:
+                found.append(snippet)
+    return found, True
+
+
 def injection_fragments(text: str, limit: int = 5) -> list[str]:
     """Líneas del texto que disparan la detección, recortadas para mostrarlas."""
     if not text:

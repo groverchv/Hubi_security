@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # Groq Cloud
     GROQ_API_KEY: str | None = None
 
+    # VirusTotal: consulta por hash de archivos subidos. No se envía el archivo.
+    VIRUSTOTAL_API_KEY: str | None = None
+
     # Stripe Payments
     STRIPE_SECRET_KEY: str | None = None
     STRIPE_PUBLISHABLE_KEY: str | None = None
